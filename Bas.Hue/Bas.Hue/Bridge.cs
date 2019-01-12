@@ -192,11 +192,103 @@ namespace Bas.Hue
             return light;
         }
 
-        public async Task<bool> SetLightAsync(string id, object state)
+        public async Task SetLightStateAsync(string id, object state)
         {
-            var response = await SendApiCommandAsync(HttpMethod.Put, $"lights/{id}/state", state);
+            await SendApiCommandAsync(HttpMethod.Put, $"lights/{id}/state", state);            
+        }
 
-            throw new NotImplementedException();
+        public async Task TurnLightOnAsync(Light light)
+        {
+            var response = await SendApiCommandAsync(HttpMethod.Put, $"lights/{light.Id}/state", new { on = true });
+        }
+
+        public async Task TurnLightOffAsync(Light light)
+        {
+            var response = await SendApiCommandAsync(HttpMethod.Put, $"lights/{light.Id}/state", new { on = false });
+        }
+
+        /// <summary>
+        /// Sets the color of a light via the color temperature value.
+        /// </summary>
+        /// <param name="light">The light to set</param>
+        /// <param name="brightness">The brightness to set the light to. This is a value between 1 and 254.</param>
+        /// <param name="colorTemperature">The Mired color temperature to set the light to. This is a value betweem 153 and 500.</param>
+        /// <param name="transitionTimeInSeconds">Optional transition time in seconds.</param>
+        /// <returns></returns>
+        public async Task SetLightColorAsync(Light light, byte brightness, ushort colorTemperature, float transitionTimeInSeconds = 0)
+        {
+            var response = await SendApiCommandAsync(HttpMethod.Put, $"lights/{light.Id}/state", new
+            {
+                bri = GetValidBrightness(brightness),
+                ct = Clamp(colorTemperature, 153, 500),
+                transitiontime = GetTransitionTime(transitionTimeInSeconds)
+            });
+        }
+
+        /// <summary>
+        /// Set the color of a light via the saturation and hue values.
+        /// </summary>
+        /// <param name="light">The light to set</param>
+        /// <param name="brightness">The brightness to set the light to. This is a value between 1 and 254.</param>
+        /// <param name="saturation">The saturation to set the light to. This is a value between 0 and 254.</param>
+        /// <param name="hue">The hue to set the light to. This is a value between 0 and 65535. Both values are red, 25500 is green and 46920 is blue.</param>
+        /// <param name="transitionTimeInSeconds">Optional transition time in seconds.</param>
+        /// <returns></returns>
+        public async Task SetLightColorAsync(Light light, byte brightness, byte saturation, ushort hue, float transitionTimeInSeconds = 0)
+        {
+            var response = await SendApiCommandAsync(HttpMethod.Put, $"lights/{light.Id}/state", new
+            {
+                bri = GetValidBrightness(brightness),
+                sat = Clamp(saturation, (byte)0, (byte)254),
+                hue = Clamp(hue, 0, 65535),
+                transitiontime = GetTransitionTime(transitionTimeInSeconds)
+            });
+        }
+
+
+        /// <summary>
+        /// Set the color of a light via the coordinates in CIE color space.
+        /// </summary>
+        /// <param name="light">The light to set</param>
+        /// <param name="brightness">The brightness to set the light to. This is a value between 1 and 254.</param>
+        /// <param name="x">The x coordinate of the color in CIE color space. This is a value between 0.0f and 1.0f.</param>
+        /// <param name="x">The y coordinate of the color in CIE color space. This is a value between 0.0f and 1.0f.</param>
+        /// <param name="transitionTimeInSeconds">Optional transition time in seconds.</param>
+        /// <returns></returns>
+        public async Task SetLightColorAsync(Light light, byte brightness, float x, float y, float transitionTimeInSeconds = 0)
+        {
+            var response = await SendApiCommandAsync(HttpMethod.Put, $"lights/{light.Id}/state", new
+            {
+                bri = GetValidBrightness(brightness),
+                xy = new [] { Clamp(x, 0.0f, 1.0f), Clamp(y, 0.0f, 1.0f) },
+                transitiontime = GetTransitionTime(transitionTimeInSeconds)
+            });
+        }
+
+        private int GetTransitionTime(float transitionTimeInSeconds)
+        {
+            return Convert.ToInt32(transitionTimeInSeconds * 10);
+        }
+
+        private byte GetValidBrightness(byte brightness)
+        {
+            return Clamp(brightness, (byte)1, (byte)254);
+        }
+
+        private T Clamp<T>(T value, T minValue, T maxValue) where T: IComparable<T>
+        {
+            if (value.CompareTo(minValue) < 0)
+            {
+                return minValue;
+            }
+            else if (value.CompareTo(maxValue) > 0)
+            {
+                return maxValue;
+            }
+            else
+            {
+                return value;
+            }
         }
     }
 }

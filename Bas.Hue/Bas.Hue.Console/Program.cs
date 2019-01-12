@@ -14,8 +14,8 @@ namespace Bas.Hue.Console
 
             var light = await bridge.GetLightAsync("1");
 
-            light.State.IsOn = false;
-            var succeeded = await bridge.SetLightAsync(light.Id, new { on = true, hue = 0 });
+            await bridge.TurnLightOnAsync(light);
+            await bridge.SetLightColorAsync(light, 255, 300, 1.0f);
         }
     }
 }
