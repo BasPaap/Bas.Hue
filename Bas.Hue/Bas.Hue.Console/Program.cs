@@ -13,9 +13,12 @@ namespace Bas.Hue.Console
             bridge.Username = "UrtLcUgQmzcyFpkVyVtFett4j1kaxY7sjEmqpdgf";
 
             var light = await bridge.GetLightAsync("1");
+            await bridge.SetLightColorAsync(light, 127, 0.5f, 0.25f);
+            var light2 = await bridge.GetLightAsync("1");
 
-            await bridge.TurnLightOnAsync(light);
             await bridge.SetLightColorAsync(light, 255, 300, 1.0f);
+            var light3 = await bridge.GetLightAsync("1");
+
         }
     }
 }

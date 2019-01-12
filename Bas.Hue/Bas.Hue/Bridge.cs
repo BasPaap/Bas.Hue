@@ -192,19 +192,22 @@ namespace Bas.Hue
             return light;
         }
 
-        public async Task SetLightStateAsync(string id, object state)
+        public async Task SetLightStateAsync(Light light, object state)
         {
-            await SendApiCommandAsync(HttpMethod.Put, $"lights/{id}/state", state);            
+            var response = await SendApiCommandAsync(HttpMethod.Put, $"lights/{light.Id}/state", state);
+            UpdateLightState(light, response);
         }
 
         public async Task TurnLightOnAsync(Light light)
         {
             var response = await SendApiCommandAsync(HttpMethod.Put, $"lights/{light.Id}/state", new { on = true });
+            UpdateLightState(light, response);
         }
 
         public async Task TurnLightOffAsync(Light light)
         {
             var response = await SendApiCommandAsync(HttpMethod.Put, $"lights/{light.Id}/state", new { on = false });
+            UpdateLightState(light, response);
         }
 
         /// <summary>
@@ -223,6 +226,8 @@ namespace Bas.Hue
                 ct = Clamp(colorTemperature, 153, 500),
                 transitiontime = GetTransitionTime(transitionTimeInSeconds)
             });
+            UpdateLightState(light, response);
+            light.State.ColorMode = ColorMode.ColorTemperature;
         }
 
         /// <summary>
@@ -243,6 +248,8 @@ namespace Bas.Hue
                 hue = Clamp(hue, 0, 65535),
                 transitiontime = GetTransitionTime(transitionTimeInSeconds)
             });
+            UpdateLightState(light, response);
+            light.State.ColorMode = ColorMode.HueAndSaturation;
         }
 
 
@@ -263,6 +270,45 @@ namespace Bas.Hue
                 xy = new [] { Clamp(x, 0.0f, 1.0f), Clamp(y, 0.0f, 1.0f) },
                 transitiontime = GetTransitionTime(transitionTimeInSeconds)
             });
+            UpdateLightState(light, response);
+            light.State.ColorMode = ColorMode.XY;
+        }
+
+        private void UpdateLightState(Light light, string response)
+        {
+            var responseArray = JArray.Parse(response);
+            string propertyPrefix = $"/lights/{light.Id}/state/";
+
+            foreach (var item in responseArray)
+            {
+                if (item["success"] != null && ((JProperty)item["success"].First).Name.StartsWith(propertyPrefix))
+                {   
+                    switch (((JProperty)item["success"].First).Name.Substring(propertyPrefix.Length))
+                    {
+                        case "bri":
+                            light.State.Brightness = ((JProperty)item["success"].First).ToObject<byte>();
+                            break;
+                        case "sat":
+                            light.State.Saturation = ((JProperty)item["success"].First).ToObject<byte>();
+                            break;
+                        case "hue":
+                            light.State.Hue = ((JProperty)item["success"].First).ToObject<ushort>();
+                            break;
+                        case "xy":
+                            light.State.X = ((JProperty)item["success"].First).First[0].ToObject<float>();
+                            light.State.Y = ((JProperty)item["success"].First).First[1].ToObject<float>();
+                            break;
+                        case "ct":
+                            light.State.ColorTemperature = ((JProperty)item["success"].First).ToObject<ushort>();
+                            break;
+                        case "on":
+                            light.State.IsOn = ((JProperty)item["success"].First).ToObject<bool>();
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
         }
 
         private int GetTransitionTime(float transitionTimeInSeconds)
