@@ -12,7 +12,10 @@ namespace Bas.Hue.Console
             //var username = await bridge.RegisterAsync("testdevice");
             bridge.Username = "UrtLcUgQmzcyFpkVyVtFett4j1kaxY7sjEmqpdgf";
 
-            var lights = await bridge.GetLightsAsync();
+            var light = await bridge.GetLightAsync("1");
+
+            light.State.IsOn = false;
+            var succeeded = await bridge.SetLightAsync(light.Id, new { on = true, hue = 0 });
         }
     }
 }

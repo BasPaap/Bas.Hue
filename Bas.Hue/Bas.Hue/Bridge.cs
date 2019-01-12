@@ -78,7 +78,7 @@ namespace Bas.Hue
             return null;
         }
 
-        private async Task<string> SendApiCommandAsync(HttpMethod httpMethod, Operation operation, object content = null, bool isAnonymous = false)
+        private async Task<string> SendApiCommandAsync(HttpMethod httpMethod, string operation, object content = null, bool isAnonymous = false)
         {
             // If this isn't an anonymous command, but there's no username, throw an exception.
             if (!isAnonymous && string.IsNullOrWhiteSpace(Username))
@@ -91,7 +91,7 @@ namespace Bas.Hue
             int numRetries = 0;
             while (numRetries <= maxRetries)
             {
-                var httpResponse = await SendRequestAsync(httpMethod, Enum.GetName(typeof(Operation), operation).ToLower(), content != null ? JsonConvert.SerializeObject(content) : null);
+                var httpResponse = await SendRequestAsync(httpMethod, operation, content != null ? JsonConvert.SerializeObject(content) : null);
 
                 if (httpResponse.IsSuccessStatusCode)
                 {
@@ -148,7 +148,7 @@ namespace Bas.Hue
                 devicetype = deviceName
             };
 
-            var response = await SendApiCommandAsync(HttpMethod.Post, Operation.None, content, true);
+            var response = await SendApiCommandAsync(HttpMethod.Post, string.Empty, content, true);
             var result = JArray.Parse(response);
 
             if (result[0]["error"] != null)
@@ -172,7 +172,7 @@ namespace Bas.Hue
 
         public async Task<IEnumerable<Light>> GetLightsAsync()
         {
-            var response = await SendApiCommandAsync(HttpMethod.Get, Operation.Lights);
+            var response = await SendApiCommandAsync(HttpMethod.Get, "lights");
 
             var lightsDictionary = JsonConvert.DeserializeObject<Dictionary<string, Light>>(response);
             foreach (var key in lightsDictionary.Keys)
@@ -181,6 +181,22 @@ namespace Bas.Hue
             }
 
             return lightsDictionary.Values;
+        }
+        
+        public async Task<Light> GetLightAsync(string id)
+        {
+            var response = await SendApiCommandAsync(HttpMethod.Get, $"lights/{id}");
+            var light = JsonConvert.DeserializeObject<Light>(response);
+            light.Id = id;
+
+            return light;
+        }
+
+        public async Task<bool> SetLightAsync(string id, object state)
+        {
+            var response = await SendApiCommandAsync(HttpMethod.Put, $"lights/{id}/state", state);
+
+            throw new NotImplementedException();
         }
     }
 }

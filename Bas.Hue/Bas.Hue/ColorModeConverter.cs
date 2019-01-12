@@ -27,7 +27,21 @@ namespace Bas.Hue
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            throw new NotImplementedException();
+            switch ((ColorMode)value)
+            {
+                case ColorMode.HueAndSaturation:
+                    writer.WriteValue("hs");
+                    break;
+                case ColorMode.XY:
+                    writer.WriteValue("xy");
+                    break;
+                case ColorMode.ColorTemperature:
+                    writer.WriteValue("ct");
+                    break;
+                case ColorMode.None:
+                default:
+                    break;
+            }
         }
     }
 }
